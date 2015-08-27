@@ -8,6 +8,7 @@ namespace Imposto.Core.Domain
 {
     public class NotaFiscalItem
     {
+        #region Propriedades
         public int Id { get; set; }
         public int IdNotaFiscal { get; set; }
         public string Cfop { get; set; }
@@ -17,5 +18,11 @@ namespace Imposto.Core.Domain
         public double ValorIcms { get; set; }
         public string NomeProduto { get; set; }
         public string CodigoProduto { get; set; }
+        public double BaseIPI { get; set; }
+        public double AliquotaIPI { get; set; }
+        public double ValorIPI { get; set; }
+        public double Desconto { get; set; }
+        #endregion
+
     }
 }

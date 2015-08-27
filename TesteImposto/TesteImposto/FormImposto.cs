@@ -9,66 +9,85 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Imposto.Core.Domain;
+using System.Configuration;
 
 namespace TesteImposto
 {
     public partial class FormImposto : Form
     {
-        private Pedido pedido = new Pedido();
+        string _diretorio = string.Empty;
+        NotaFiscalService _service = null;
 
         public FormImposto()
         {
             InitializeComponent();
-            dataGridViewPedidos.AutoGenerateColumns = true;                       
-            dataGridViewPedidos.DataSource = GetTablePedidos();
-            ResizeColumns();
+            
+            _service = new NotaFiscalService();            
+            
+           ResizeColumns();
         }
 
         private void ResizeColumns()
         {
+            dataGridViewPedidos.AutoGenerateColumns = true;
+            dataGridViewPedidos.DataSource = _service.PrepararItensPedido();
+            
             double mediaWidth = dataGridViewPedidos.Width / dataGridViewPedidos.Columns.GetColumnCount(DataGridViewElementStates.Visible);
 
             for (int i = dataGridViewPedidos.Columns.Count - 1; i >= 0; i--)
             {
                 var coluna = dataGridViewPedidos.Columns[i];
                 coluna.Width = Convert.ToInt32(mediaWidth);
-            }   
-        }
-
-        private object GetTablePedidos()
-        {
-            DataTable table = new DataTable("pedidos");
-            table.Columns.Add(new DataColumn("Nome do produto", typeof(string)));
-            table.Columns.Add(new DataColumn("Codigo do produto", typeof(string)));
-            table.Columns.Add(new DataColumn("Valor", typeof(decimal)));
-            table.Columns.Add(new DataColumn("Brinde", typeof(bool)));
-                     
-            return table;
-        }
-
-        private void buttonGerarNotaFiscal_Click(object sender, EventArgs e)
-        {            
-            NotaFiscalService service = new NotaFiscalService();
-            pedido.EstadoOrigem = txtEstadoOrigem.Text;
-            pedido.EstadoDestino = txtEstadoDestino.Text;
-            pedido.NomeCliente = textBoxNomeCliente.Text;
-
-            DataTable table = (DataTable)dataGridViewPedidos.DataSource;
-
-            foreach (DataRow row in table.Rows)
-            {
-                pedido.ItensDoPedido.Add(
-                    new PedidoItem()
-                    {
-                        Brinde = Convert.ToBoolean(row["Brinde"]),
-                        CodigoProduto =  row["Codigo do produto"].ToString(),
-                        NomeProduto = row["Nome do produto"].ToString(),
-                        ValorItemPedido = Convert.ToDouble(row["Valor"].ToString())            
-                    });
             }
 
-            service.GerarNotaFiscal(pedido);
-            MessageBox.Show("Operação efetuada com sucesso");
+            ListaEstado lista = new ListaEstado();
+            ListaEstado lista2 = new ListaEstado();
+
+            cbxEstadoOrigem.DataSource = lista.EstadosLista;
+            cbxEstadoDestino.DataSource = lista2.EstadosLista;
+
+            _diretorio = ConfigurationManager.AppSettings.Get("CaminhoNota").ToString();
+        }
+
+        private void btnGerarNota_Click(object sender, EventArgs e)
+        {
+            GerarNota();
+        }
+
+        private void GerarNota()
+        {
+            try
+            {
+                Pedido pedido = _service.GerarPedido(textBoxNomeCliente.Text,
+                                                    (string)cbxEstadoOrigem.SelectedValue,
+                                                    (string)cbxEstadoDestino.SelectedValue,
+                                                    (DataTable)dataGridViewPedidos.DataSource);
+
+                _service.GerarNotaFiscal(pedido, _diretorio);
+
+                MessageBox.Show("Operação efetuada com sucesso");
+
+                textBoxNomeCliente.Clear();
+                ResizeColumns();
+
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(exception.Message);
+            }
+        }
+
+        private void btnFechar_Click(object sender, EventArgs e)
+        {
+            Close();
+        }
+
+        private void FormImposto_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.F4)
+            {
+                GerarNota();
+            }
         }
     }
 }
